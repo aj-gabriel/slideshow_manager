@@ -1,0 +1,5 @@
+databaseChangeLog:
+  - include:
+      file: config/liquibase/changelog/04012025-1-init-images-table.yml
+  - include:
+      file: config/liquibase/changelog/04012025-2-init-slideshow-table.yml

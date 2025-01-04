@@ -1,0 +1,12 @@
+spring:
+  r2dbc:
+    url: ${DATABASE_URL:r2dbc:postgresql://localhost:5432/postgres}
+    username: ${JDBC_DATABASE_USERNAME:postgres}
+    password: ${JDBC_DATABASE_PASSWORD:postgres}
+  liquibase:
+    change-log: classpath:/config/liquibase/db.changelog-master.yaml
+  mvc:
+    log-request-details: true
+
+server:
+  port: ${PORT:8080}

@@ -8,15 +8,13 @@ import org.slideshow.model.dto.request.ImageDetailsRequestDTO;
 import org.slideshow.model.dto.request.SlideshowRequestDTO;
 import org.slideshow.model.dto.response.SlideshowResponseDTO;
 import org.slideshow.model.dto.response.ValidationErrorResponseDTO;
-import org.slideshow.service.SlideshowService;
+import org.slideshow.service.SlideshowServiceFacade;
 import org.slideshow.validation.ValidationError;
-import org.slideshow.validation.validators.CustomImageValidator;
+import org.slideshow.validation.validators.ImageValidationService;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -27,13 +25,12 @@ import static org.slideshow.validation.ValidationUtils.filterValidImages;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/slideshows")
+@RequestMapping("/api/v1/slideShow")
 public class SlideshowController {
 
   private final ObjectMapper objectMapper;
-  private final CustomImageValidator validator;
-  private final SlideshowService slideshowService;
-
+  private final ImageValidationService validator;
+  private final SlideshowServiceFacade slideshowFacade;
 
   /**
    * One of the possible implementations, depends on contract and business logic.
@@ -50,7 +47,7 @@ public class SlideshowController {
               Flux<ImageDetailsRequestDTO> images = Flux.fromIterable(r.images());
 
               Flux<ValidationError> validationErrors = validator
-                      .validate(Mono.just(r))
+                      .validateImages(Mono.just(r))
                       .flatMapMany(Flux::fromIterable);
 
               Flux<ValidationErrorResponseDTO> validationErrorResponses = validationErrors
@@ -68,10 +65,14 @@ public class SlideshowController {
 
                         //any valid image present
                         if (validImagesList.isEmpty()) {
-                          return Mono.just(ResponseEntity.badRequest().body(new SlideshowResponseDTO(null, null, errors)));
+                          return Mono.just(
+                                  ResponseEntity
+                                          .badRequest()
+                                          .body(new SlideshowResponseDTO(null, null, errors))
+                          );
                         }
 
-                        return slideshowService.createSlideshow(convertToImageEntityList(validImagesList))
+                        return slideshowFacade.createSlideshow(convertToImageEntityList(validImagesList))
                                 .map(slideshowProjection -> ResponseEntity.ok().body(
                                         new SlideshowResponseDTO(slideshowProjection.slideshowId(),
                                                 objectMapper.convertValue(slideshowProjection.images(),
@@ -97,6 +98,68 @@ public class SlideshowController {
                                             ))
                                     ))
                     ));
+
+  }
+
+  //DELETE /deleteSlideshow/{id}: Remove a slideshow by its ID.
+  @DeleteMapping("/{id}")
+  public Mono<ResponseEntity<Object>> deleteSlideshow(@PathVariable("id") Long id) {
+    return slideshowFacade.deleteSlideshow(Mono.just(id))
+            .then(Mono.just(ResponseEntity.ok().build()))
+            .onErrorResume(e -> Mono.just(ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .build()));
+  }
+
+
+  //GET /slideShow/{id}/slideshowOrder: Retrieve images in a slideshow ordered by image addition date.
+  @GetMapping("/{id}/slideshowOrder")
+  public Mono<ResponseEntity<SlideshowResponseDTO>> getSlideshow(@PathVariable("id") Long id,
+                                                                 @RequestParam(value = "direction", required = false, defaultValue = "ASC") String direction) {
+
+    Sort.Direction sortDirection = Sort.Direction.ASC;
+    try {
+      sortDirection = Sort.Direction.valueOf(direction.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      return Mono.just(ResponseEntity
+              .status(HttpStatus.BAD_REQUEST)
+              .body(new SlideshowResponseDTO(null,
+                      null,
+                      List.of(new ValidationErrorResponseDTO(
+                              "400", "Invalid value for sorting direction. Use 'ASC' or 'DESC'."
+                      ))
+              ))
+      );
+    }
+
+    return slideshowFacade.getSlideshowById(id, sortDirection)
+            .map(slideshowProjection -> ResponseEntity.ok().body(
+                    new SlideshowResponseDTO(slideshowProjection.slideshowId(),
+                            objectMapper.convertValue(slideshowProjection.images(),
+                                    new TypeReference<>() {
+                                    }),
+                            null)
+            ))
+            .switchIfEmpty(Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()))
+            .onErrorResume(e ->
+                    Mono.just(
+                            ResponseEntity
+                                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                    .body(new SlideshowResponseDTO(
+                                            null,
+                                            null,
+                                            List.of(new ValidationErrorResponseDTO(
+                                                    INTERNAL_SERVER_ERROR.getCode(),
+                                                    INTERNAL_SERVER_ERROR.getDefaultMessage() +
+                                                            " Unexpected error: " + e.getMessage()
+                                            ))
+                                    ))
+                    ));
+  }
+
+  //POST /slideShow/{id}/proof-of-play/{imageId}: Record an event when an image is replaced by the next
+  @PostMapping("/{id}/proof-of-play/{imageId}")
+  public void log(@PathVariable String id, @PathVariable String imageId) {
 
   }
 

@@ -1,7 +1,6 @@
 package org.slideshow.model.dto.request;
 
-public record ImageDetailsRequestDTO(
-        Long id,
+public record ImageCreateRequestDTO(
         String url,
         Short duration) {
 }

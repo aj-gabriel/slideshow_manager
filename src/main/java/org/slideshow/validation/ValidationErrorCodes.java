@@ -8,6 +8,7 @@ public enum ValidationErrorCodes {
   INTERNAL_VALIDATION_ERROR("INTERNAL_VALIDATION_ERROR", "Unexpected error: "),
   EMPTY_LIST("EMPTY_LIST", "Images list cannot be empty"),
   INVALID_IMAGE("INVALID_IMAGE", "Image cannot be null"),
+  INVALID_IMAGE_TYPE("INVALID_IMAGE", "Image has unsupported type or missing by specified url"),
   INVALID_IMAGE_INSTANCE_ID("INVALID_IMAGE_INSTANCE_ID", "Image with specified ID {id} not found."),
   INVALID_IMAGE_URL("INVALID_IMAGE_URL", "URL must be provided, and URL must not exceed 255 characters"),
   INVALID_IMAGE_URL_LENGTH("INVALID_IMAGE_URL_LENGTH", "URL must not exceed 255 characters. Current length {length}"),

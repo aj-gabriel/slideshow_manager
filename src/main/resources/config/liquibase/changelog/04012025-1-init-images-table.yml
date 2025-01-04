@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: 04012025-1-init-images-table
+      author: oyershov
+      changes:
+        - createTable:
+            tableName: images
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: url
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: duration
+                  type: smallint
+                  constraints:
+                    nullable: true
+              - column:
+                  name: added_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createSequence:
+            sequenceName: image_id_seq
+            startValue: 1
+            incrementBy: 1
+
+        - sql:
+            sql: >
+              CREATE INDEX idx_images_fulltext
+              ON images USING gin (
+                to_tsvector('english', url || ' ' || duration::text)
+              );

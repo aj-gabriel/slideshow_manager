@@ -1,13 +1,14 @@
 package org.slideshow.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slideshow.model.domain.ImageEntity;
+import org.slideshow.model.projection.ImageProjection;
 import org.slideshow.repository.ImageRepository;
 import org.slideshow.service.ImageService;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -18,7 +19,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ImageServiceImpl implements ImageService {
 
-  private final ObjectMapper objectMapper;
   private final ImageRepository imageRepository;
 
   @Transactional
@@ -27,10 +27,8 @@ public class ImageServiceImpl implements ImageService {
   }
 
   @Transactional
-  public Mono<List<ImageEntity>> createImages(Flux<ImageEntity> imagesDTO) {
-    return imagesDTO
-            .as(imageRepository::saveAll)
-            .collectList();
+  public Flux<ImageEntity> createImages(Flux<ImageEntity> imagesDTO) {
+    return imagesDTO.as(imageRepository::saveAll);
 
   }
 
@@ -40,6 +38,15 @@ public class ImageServiceImpl implements ImageService {
 
   public Flux<ImageEntity> findImagesById(List<Long> ids) {
     return imageRepository.findAllById(ids);
+  }
+
+  @Override
+  public Flux<ImageProjection> findByKeywordAndDuration(String keyword, Integer duration, Sort.Direction orderDirection) {
+    return imageRepository.findByKeywordAndDuration(keyword, duration, orderDirection.name());
+  }
+
+  public Mono<Void> deleteImageById(Long id) {
+    return imageRepository.deleteById(id);
   }
 
 }

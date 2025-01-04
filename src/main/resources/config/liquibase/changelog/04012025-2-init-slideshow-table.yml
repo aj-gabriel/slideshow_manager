@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 04012025-2-init-slideshow-table
+      author: oyershov
+      changes:
+        - createTable:
+            tableName: slideshows
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: images_ids
+                  type: bigint[]
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createSequence:
+            sequenceName: slideshow_id_seq
+            startValue: 1
+            incrementBy: 1

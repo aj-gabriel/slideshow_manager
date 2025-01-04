@@ -1,59 +1,48 @@
 package org.slideshow.service.impl;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slideshow.model.domain.ImageEntity;
 import org.slideshow.model.domain.SlideshowEntity;
 import org.slideshow.model.projection.SlideshowProjection;
 import org.slideshow.repository.SlideshowRepository;
-import org.slideshow.service.ImageService;
 import org.slideshow.service.SlideshowService;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class SlideshowServiceImpl implements SlideshowService {
 
-  private final ImageService imageService;
   private final SlideshowRepository slideshowRepository;
 
   @Transactional
-  public Mono<SlideshowProjection> createSlideshow(Flux<ImageEntity> imagesDTO) {
-
-    //filter list by empty id and create new images
-    Mono<List<ImageEntity>> createNewImages = imagesDTO
-            .filter(dto -> dto.getId() == null)
-            .as(imageService::createImages);
-
-    //filter images with id
-    Mono<List<ImageEntity>> getExistingImages = imagesDTO
-            .filter(dto -> dto.getId() != null)
-            .collectList();
-
-    //combine them and extract images ids
-    Mono<List<Long>> imageIds = Flux
-            .merge(createNewImages, getExistingImages)
-            .flatMap(Flux::fromIterable)
-            .map(ImageEntity::getId)
-            .collect(Collectors.toList());
-
+  public Mono<SlideshowProjection> createSlideshow(Mono<List<Long>> imageIds) {
     return imageIds.flatMap(ids -> {
               SlideshowEntity slideshowEntity = new SlideshowEntity();
               slideshowEntity.setImagesIds(ids);
               return slideshowRepository.save(slideshowEntity);
             })
             //retrieve from DB slideshow with images as projection due to reactive repositories mapping specific
-            .flatMap(savedSlideshow ->
-                    slideshowRepository.findSlideshowWithImagesById(savedSlideshow.getId(), "ASC")
-            );
+            .flatMap(savedSlideshow -> getSlideshowById(savedSlideshow.getId(), Sort.Direction.ASC));
+  }
 
+  public Mono<SlideshowProjection> getSlideshowById(Long id, Sort.Direction orderDirection) {
+    return slideshowRepository.findSlideshowWithImagesById(id, orderDirection.name());
+  }
+
+  @Transactional
+  public Mono<Void> deleteSlideshowById(Mono<Long> id) {
+    return slideshowRepository.deleteById(id);
+  }
+
+  @Transactional
+  public Mono<Integer> removeImagesFromSlideshow(Mono<Long> imageId) {
+    return imageId.flatMap(slideshowRepository::removeImageIdFromSlideshows);
   }
 
 }
