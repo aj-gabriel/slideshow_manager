@@ -33,6 +33,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.slideshow.validation.ValidationErrorCodes.INTERNAL_SERVER_ERROR;
 import static org.slideshow.validation.ValidationErrorCodes.INVALID_IMAGE_TYPE;
 import static org.slideshow.validation.validators.ImageValidationService.IMAGE_HASH_KEY;
 import static org.slideshow.validation.validators.ImageValidationService.INVALID_VALUE_KEY;
@@ -153,6 +154,46 @@ public class SlideshowControllerTest {
   }
 
   @Test
+  void shouldNotCreateNewSlideshowOnInternalError() {
+    //prepare
+    short duration = 10;
+    String url = "test_url";
+
+    ImageEntity imageEntity = new ImageEntity();
+    imageEntity.setDuration(duration);
+    imageEntity.setUrl(url);
+
+    List<ImageDetailsRequestDTO> imageDetailsList = List.of(new ImageDetailsRequestDTO(null, url, duration));
+    SlideshowRequestDTO request = new SlideshowRequestDTO(imageDetailsList);
+
+    doReturn(Mono.error(new RuntimeException())).when(validationFacade).validateImages(any());
+
+    //execute
+    SlideshowResponseDTO result = webTestClient.post()
+            .uri(uriBuilder -> uriBuilder
+                    .path(SLIDESHOW_API_PATH)
+                    .build())
+            .accept(MediaType.APPLICATION_JSON)
+            .body(Mono.just(request), SlideshowRequestDTO.class)
+            .exchange()
+            .expectStatus().is5xxServerError()
+            .expectBody(SlideshowResponseDTO.class)
+            .returnResult()
+            .getResponseBody();
+
+    //verify
+    assertNotNull(result);
+    assertNull(result.id());
+    assertNull(result.images());
+    assertEquals(1, result.errors().size());
+    assertEquals(INTERNAL_SERVER_ERROR.getCode(), result.errors().get(0).code());
+    assertEquals("Something went wrong. Unexpected error: null", result.errors().get(0).message());
+
+    verify(validationFacade).validateImages(any());
+    verify(slideshowFacade, never()).createSlideshow(any());
+  }
+
+  @Test
   void shouldDeleteExistingSlideshow() {
     Long slideshowId = 1L;
 
@@ -203,6 +244,46 @@ public class SlideshowControllerTest {
     assertEquals(1, result.images().size());
     assertEquals(objectMapper.convertValue(slideshowProjection.images(), new TypeReference<List<ImageResponseDTO>>() {
     }), result.images());
+  }
+
+  @Test
+  void shouldThrowExceptionOnGetSlideshowInAscendingOrder() {
+    //prepare
+    long slideshowId = 1L;
+
+    short duration = 10;
+    String url = "test_url";
+
+    ImageEntity imageEntity = new ImageEntity();
+    imageEntity.setId(1L);
+    imageEntity.setDuration(duration);
+    imageEntity.setUrl(url);
+
+    SlideshowProjection slideshowProjection = new SlideshowProjection(slideshowId, List.of(imageEntity));
+
+    doReturn(Mono.error(new RuntimeException())).when(slideshowService).getSlideshowById(slideshowId, Sort.Direction.ASC);
+
+    //execute
+    SlideshowResponseDTO result = webTestClient.get()
+            .uri(uriBuilder -> uriBuilder
+                    .path(SLIDESHOW_API_PATH + "/{id}/slideshowOrder")
+                    .queryParam("direction", "ASC")
+                    .build(slideshowId))
+            .exchange()
+            .expectStatus().is5xxServerError()
+            .expectBody(SlideshowResponseDTO.class)
+            .returnResult()
+            .getResponseBody();
+
+    // verify
+    assertNotNull(result);
+    assertNull(result.id());
+    assertNull(result.images());
+
+    assertEquals(1, result.errors().size());
+    assertEquals(INTERNAL_SERVER_ERROR.getCode(), result.errors().get(0).code());
+    assertEquals("Something went wrong. Unexpected error: null", result.errors().get(0).message());
+
   }
 
 }
