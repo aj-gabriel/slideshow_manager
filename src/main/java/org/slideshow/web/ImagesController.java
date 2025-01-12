@@ -18,20 +18,19 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
 import static org.slideshow.validation.ValidationErrorCodes.INTERNAL_SERVER_ERROR;
+import static org.slideshow.web.SharedConstants.IMAGES_API_PATH;
 
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping(ImagesController.API_V1_IMAGES_PATH)
+@RequestMapping(IMAGES_API_PATH)
 public class ImagesController {
 
-  public static final String API_V1_IMAGES_PATH = "/api/v1/images";
   private final ImageService imageService;
   private final ObjectMapper objectMapper;
   private final ImageValidationService validator;
@@ -43,15 +42,12 @@ public class ImagesController {
     return request.flatMap(r ->
                     validationFacade.validateRequest(r)
                             .flatMap(error -> Mono.error(new ImageValidationException(error)))
-                            .switchIfEmpty(Mono.just(r))//transfer request data to downstream
+                            .switchIfEmpty(Mono.just(r))//transfer request data to downstream if no errors found
                             .flatMap(data ->
-                                    {
-                                      log.info("on create {}", data.toString());
-                                      return imageService.createImage(Mono.just(objectMapper.convertValue(data, ImageEntity.class)))
-                                              .map(image -> ResponseEntity.status(HttpStatus.CREATED).body(
-                                                      new ImageCreationResponseDTO(image.getId(), image.getUrl(), image.getDuration(), null)
-                                              ));
-                                    }
+                                    imageService.createImage(Mono.just(objectMapper.convertValue(data, ImageEntity.class)))
+                                            .map(image -> ResponseEntity.status(HttpStatus.CREATED).body(
+                                                    new ImageCreationResponseDTO(image.getId(), image.getUrl(), image.getDuration(), null)
+                                            ))
                             )
             )
             .onErrorResume(ImageValidationException.class,
@@ -68,8 +64,8 @@ public class ImagesController {
                     ))));
   }
 
-  @GetMapping("/images/search")
-  public Flux<ResponseEntity<ImageResponseDTO>> searchImages(
+  @GetMapping("/search")
+  public Mono<ResponseEntity<List<ImageResponseDTO>>> searchImages(
           @RequestParam(value = "keyword", required = false) String keyword,
           @RequestParam(value = "duration", required = false) Integer duration,
           @RequestParam(value = "direction", required = false, defaultValue = "ASC") String direction) {
@@ -79,24 +75,22 @@ public class ImagesController {
     try {
       sortDirection = Sort.Direction.valueOf(direction.toUpperCase());
     } catch (IllegalArgumentException e) {
-      return Flux.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+      return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
     }
 
     return imageService.findByKeywordAndDuration(keyword, duration, sortDirection)
-            .map(imageProjection -> ResponseEntity.ok().body(
-                            new ImageResponseDTO(
-                                    imageProjection.id(),
-                                    imageProjection.url(),
-                                    imageProjection.duration())
-                    )
-            )
-            .switchIfEmpty(Flux.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()))
-            .onErrorResume(e -> Flux.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()));
+            .map(imageProjection -> new ImageResponseDTO(
+                    imageProjection.id(),
+                    imageProjection.url(),
+                    imageProjection.duration()
+            ))
+            .collectList()
+            .flatMap(images -> Mono.just(ResponseEntity.ok(images)))
+            .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()));
   }
 
   @DeleteMapping("/{id}")
   public Mono<Void> deleteById(@PathVariable Long id) {
     return slideshowServiceFacade.deleteImageAndUpdateSlideshow(Mono.just(id));
   }
-
 }

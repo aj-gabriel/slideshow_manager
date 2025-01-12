@@ -5,5 +5,5 @@ import java.util.List;
 public record ImageCreationResponseDTO(Long id,
                                        String url,
                                        Short duration,
-                                       List<ValidationErrorResponseDTO> validationErrors) {
+                                       List<ValidationErrorResponseDTO> errors) {
 }
