@@ -5,5 +5,5 @@ import java.util.List;
 public record SlideshowResponseDTO(
         Long id,
         List<ImageResponseDTO> images,
-        List<ValidationErrorResponseDTO> validationErrors) {
+        List<ValidationErrorResponseDTO> errors) {
 }

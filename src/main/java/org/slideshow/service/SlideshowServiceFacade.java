@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slideshow.model.domain.ImageEntity;
 import org.slideshow.model.projection.SlideshowProjection;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -37,18 +36,14 @@ public class SlideshowServiceFacade {
             .collectList();
 
     //combine them and create new Slideshow
-    return Mono.from(Flux.merge(newImagesIds, existingImagesIds)
-            .flatMap(ids -> slideshowService.createSlideshow(Mono.just(ids))));
+    return Mono.zip(newImagesIds, existingImagesIds)
+            .map(tuple -> {
+              List<Long> combinedIds = tuple.getT1();
+              combinedIds.addAll(tuple.getT2());
+              return combinedIds;
+            })
+            .flatMap(ids -> slideshowService.createSlideshow(Mono.just(ids)));
 
-  }
-
-  public Mono<SlideshowProjection> getSlideshowById(Long id, Sort.Direction orderDirection) {
-    return slideshowService.getSlideshowById(id, orderDirection);
-
-  }
-
-  public Mono<Void> deleteSlideshow(Mono<Long> slideshowId) {
-    return slideshowService.deleteSlideshowById(slideshowId);
   }
 
   public Mono<Void> deleteImageAndUpdateSlideshow(Mono<Long> imageId) {

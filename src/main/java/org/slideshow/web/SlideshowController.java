@@ -8,9 +8,10 @@ import org.slideshow.model.dto.request.ImageDetailsRequestDTO;
 import org.slideshow.model.dto.request.SlideshowRequestDTO;
 import org.slideshow.model.dto.response.SlideshowResponseDTO;
 import org.slideshow.model.dto.response.ValidationErrorResponseDTO;
+import org.slideshow.service.SlideshowService;
 import org.slideshow.service.SlideshowServiceFacade;
+import org.slideshow.validation.ImagesValidationFacade;
 import org.slideshow.validation.ValidationError;
-import org.slideshow.validation.validators.ImageValidationService;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,15 +23,18 @@ import java.util.List;
 
 import static org.slideshow.validation.ValidationErrorCodes.INTERNAL_SERVER_ERROR;
 import static org.slideshow.validation.ValidationUtils.filterValidImages;
+import static org.slideshow.web.SharedConstants.SLIDESHOW_API_PATH;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/slideShow")
+@RequestMapping(SLIDESHOW_API_PATH)
 public class SlideshowController {
 
   private final ObjectMapper objectMapper;
-  private final ImageValidationService validator;
+  private final SlideshowService slideshowService;
   private final SlideshowServiceFacade slideshowFacade;
+  private final ImagesValidationFacade validationFacade;
 
   /**
    * One of the possible implementations, depends on contract and business logic.
@@ -46,7 +50,7 @@ public class SlideshowController {
     return request.flatMap(r -> {
               Flux<ImageDetailsRequestDTO> images = Flux.fromIterable(r.images());
 
-              Flux<ValidationError> validationErrors = validator
+              Flux<ValidationError> validationErrors = validationFacade
                       .validateImages(Mono.just(r))
                       .flatMapMany(Flux::fromIterable);
 
@@ -103,12 +107,10 @@ public class SlideshowController {
 
   //DELETE /deleteSlideshow/{id}: Remove a slideshow by its ID.
   @DeleteMapping("/{id}")
-  public Mono<ResponseEntity<Object>> deleteSlideshow(@PathVariable("id") Long id) {
-    return slideshowFacade.deleteSlideshow(Mono.just(id))
-            .then(Mono.just(ResponseEntity.ok().build()))
-            .onErrorResume(e -> Mono.just(ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .build()));
+  public Mono<ResponseEntity<Void>> deleteSlideshow(@PathVariable("id") Long id) {
+    return slideshowService.deleteSlideshowById(Mono.just(id))
+            .thenReturn(ResponseEntity.status(NO_CONTENT).<Void>build())
+            .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()));
   }
 
 
@@ -117,7 +119,7 @@ public class SlideshowController {
   public Mono<ResponseEntity<SlideshowResponseDTO>> getSlideshow(@PathVariable("id") Long id,
                                                                  @RequestParam(value = "direction", required = false, defaultValue = "ASC") String direction) {
 
-    Sort.Direction sortDirection = Sort.Direction.ASC;
+    Sort.Direction sortDirection;
     try {
       sortDirection = Sort.Direction.valueOf(direction.toUpperCase());
     } catch (IllegalArgumentException e) {
@@ -132,7 +134,7 @@ public class SlideshowController {
       );
     }
 
-    return slideshowFacade.getSlideshowById(id, sortDirection)
+    return slideshowService.getSlideshowById(id, sortDirection)
             .map(slideshowProjection -> ResponseEntity.ok().body(
                     new SlideshowResponseDTO(slideshowProjection.slideshowId(),
                             objectMapper.convertValue(slideshowProjection.images(),
@@ -159,7 +161,7 @@ public class SlideshowController {
 
   //POST /slideShow/{id}/proof-of-play/{imageId}: Record an event when an image is replaced by the next
   @PostMapping("/{id}/proof-of-play/{imageId}")
-  public void log(@PathVariable String id, @PathVariable String imageId) {
+  public void logEvent(@PathVariable String id, @PathVariable String imageId) {
 
   }
 

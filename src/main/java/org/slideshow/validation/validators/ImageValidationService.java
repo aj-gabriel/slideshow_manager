@@ -74,7 +74,7 @@ public class ImageValidationService {
             });
   }
 
-  private Flux<ValidationError> validateImageIntegrity(Mono<ImageDetailsRequestDTO> image) {
+  public Flux<ValidationError> validateImageIntegrity(Mono<ImageDetailsRequestDTO> image) {
     return image.flatMapMany(img -> {
       if (img == null) {
         return Flux.just(new ValidationError(
@@ -264,7 +264,7 @@ public class ImageValidationService {
    * @param request SlideshowRequestDTO as payload
    * @return ValidationError list or empty
    */
-  private Mono<List<ValidationError>> validateImagesExistence(Mono<SlideshowRequestDTO> request) {
+  public Mono<List<ValidationError>> validateImagesExistence(Mono<SlideshowRequestDTO> request) {
 
     return request
             .flatMap(r -> {

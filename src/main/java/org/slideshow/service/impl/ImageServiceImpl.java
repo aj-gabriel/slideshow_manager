@@ -29,7 +29,6 @@ public class ImageServiceImpl implements ImageService {
   @Transactional
   public Flux<ImageEntity> createImages(Flux<ImageEntity> imagesDTO) {
     return imagesDTO.as(imageRepository::saveAll);
-
   }
 
   public Mono<ImageEntity> findImageById(Long id) {
@@ -45,6 +44,7 @@ public class ImageServiceImpl implements ImageService {
     return imageRepository.findByKeywordAndDuration(keyword, duration, orderDirection.name());
   }
 
+  @Transactional
   public Mono<Void> deleteImageById(Long id) {
     return imageRepository.deleteById(id);
   }
