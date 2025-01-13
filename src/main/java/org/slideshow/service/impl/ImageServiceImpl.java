@@ -21,12 +21,12 @@ public class ImageServiceImpl implements ImageService {
 
   private final ImageRepository imageRepository;
 
-  @Transactional
+  @Transactional(transactionManager = "reactiveTransactionManager")
   public Mono<ImageEntity> createImage(Mono<ImageEntity> imageDTO) {
     return imageDTO.flatMap(imageRepository::save);
   }
 
-  @Transactional
+  @Transactional(transactionManager = "reactiveTransactionManager")
   public Flux<ImageEntity> createImages(Flux<ImageEntity> imagesDTO) {
     return imagesDTO.as(imageRepository::saveAll);
   }
@@ -44,7 +44,7 @@ public class ImageServiceImpl implements ImageService {
     return imageRepository.findByKeywordAndDuration(keyword, duration, orderDirection.name());
   }
 
-  @Transactional
+  @Transactional(transactionManager = "reactiveTransactionManager")
   public Mono<Void> deleteImageById(Long id) {
     return imageRepository.deleteById(id);
   }

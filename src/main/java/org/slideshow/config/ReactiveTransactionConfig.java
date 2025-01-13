@@ -4,7 +4,6 @@ import io.r2dbc.spi.ConnectionFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.r2dbc.connection.R2dbcTransactionManager;
-import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
@@ -17,14 +16,9 @@ public class ReactiveTransactionConfig {
     this.connectionFactory = connectionFactory;
   }
 
-  @Bean
-  public R2dbcTransactionManager transactionManager() {
+  @Bean(name = "reactiveTransactionManager")
+  public R2dbcTransactionManager reactiveTransactionManager() {
     return new R2dbcTransactionManager(connectionFactory);
-  }
-
-  @Bean
-  public ReactiveTransactionManager reactiveTransactionManager() {
-    return transactionManager();
   }
 
 }

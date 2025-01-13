@@ -20,7 +20,7 @@ public class SlideshowServiceImpl implements SlideshowService {
 
   private final SlideshowRepository slideshowRepository;
 
-  @Transactional
+  @Transactional(transactionManager = "reactiveTransactionManager")
   public Mono<SlideshowProjection> createSlideshow(Mono<List<Long>> imageIds) {
     return imageIds.flatMap(ids -> {
               SlideshowEntity slideshowEntity = new SlideshowEntity();
@@ -35,12 +35,12 @@ public class SlideshowServiceImpl implements SlideshowService {
     return slideshowRepository.findSlideshowWithImagesById(id, orderDirection.name());
   }
 
-  @Transactional
+  @Transactional(transactionManager = "reactiveTransactionManager")
   public Mono<Void> deleteSlideshowById(Mono<Long> id) {
     return slideshowRepository.deleteById(id);
   }
 
-  @Transactional
+  @Transactional(transactionManager = "reactiveTransactionManager")
   public Mono<Integer> removeImagesFromSlideshow(Mono<Long> imageId) {
     return imageId.flatMap(slideshowRepository::removeImageIdFromSlideshows);
   }

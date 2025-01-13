@@ -19,7 +19,7 @@ public class SlideshowServiceFacade {
   private final ImageService imageService;
   private final SlideshowService slideshowService;
 
-  @Transactional
+  @Transactional(transactionManager = "reactiveTransactionManager")
   public Mono<SlideshowProjection> createSlideshow(Flux<ImageEntity> imagesDTO) {
 
     //filter list by empty id and create new images
