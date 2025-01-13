@@ -7,19 +7,23 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
+import org.slideshow.model.domain.ImageEntity;
 import org.slideshow.model.domain.SlideshowEntity;
+import org.slideshow.model.projection.SlideshowDBProjection;
 import org.slideshow.model.projection.SlideshowProjection;
 import org.slideshow.repository.SlideshowRepository;
 import org.slideshow.service.SlideshowService;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.data.domain.Sort.Direction;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class SlideshowServiceImplTest {
@@ -34,6 +38,7 @@ public class SlideshowServiceImplTest {
 
   private SlideshowEntity slideshowEntity;
 
+  private SlideshowDBProjection slideshowDBProjection;
   private SlideshowProjection slideshowProjection;
 
   @BeforeEach
@@ -43,8 +48,19 @@ public class SlideshowServiceImplTest {
     slideshowEntity = new SlideshowEntity();
     slideshowEntity.setId(1L);
     slideshowEntity.setImagesIds(Arrays.asList(1L, 2L));
+    short duration = 10;
+    String url = "test_url";
 
-    slideshowProjection = mock(SlideshowProjection.class);
+    ImageEntity imageEntity = new ImageEntity();
+    imageEntity.setId(1L);
+    imageEntity.setUrl(url);
+    imageEntity.setDuration(duration);
+
+    slideshowDBProjection = new SlideshowDBProjection(slideshowEntity.getId(), 1L, url, duration, LocalDateTime.now());
+    slideshowProjection = new SlideshowProjection(slideshowEntity.getId(), List.of(imageEntity));
+
+//    slideshowProjection = mock(SlideshowProjection.class);
+
   }
 
   @Test
@@ -52,32 +68,35 @@ public class SlideshowServiceImplTest {
     //prepare
     List<Long> imageIds = Arrays.asList(1L, 2L);
 
-    when(slideshowRepository.save(any(SlideshowEntity.class))).thenReturn(Mono.just(slideshowEntity));
-    when(slideshowRepository.findSlideshowWithImagesById(1L, "ASC")).thenReturn(Mono.just(slideshowProjection));
+    when(slideshowRepository.save(any(SlideshowEntity.class)))
+            .thenReturn(Mono.just(slideshowEntity));
 
     //execute
     StepVerifier.create(slideshowService.createSlideshow(Mono.just(imageIds)))
-            .expectNext(slideshowProjection)
+            .expectNext(slideshowEntity)
             .verifyComplete();
 
     //verify
     verify(slideshowRepository).save(any(SlideshowEntity.class));
-    verify(slideshowRepository).findSlideshowWithImagesById(1L, "ASC");
   }
 
   @Test
   public void getSlideshowById_ShouldReturnProjection() {
     //prepare
-    when(slideshowRepository.findSlideshowWithImagesById(1L, "ASC"))
-            .thenReturn(Mono.just(slideshowProjection));
+    when(slideshowRepository.findSlideshowWithImagesById(1L))
+            .thenReturn(Flux.just(slideshowDBProjection));
 
     //execute
-    StepVerifier.create(slideshowService.getSlideshowById(1L, Direction.ASC))
-            .expectNext(slideshowProjection)
+    StepVerifier.create(slideshowService.getSlideshowById(1L))
+            .expectNextMatches(actual ->
+                    actual.slideshowId().equals(slideshowProjection.slideshowId()) &&
+                            actual.images().size() == slideshowProjection.images().size() &&
+                            actual.images().get(0).getUrl().equals(slideshowProjection.images().get(0).getUrl())
+            )
             .verifyComplete();
 
     //verify
-    verify(slideshowRepository).findSlideshowWithImagesById(1L, "ASC");
+    verify(slideshowRepository).findSlideshowWithImagesById(1L);
   }
 
   @Test

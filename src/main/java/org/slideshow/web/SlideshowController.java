@@ -134,7 +134,7 @@ public class SlideshowController {
       );
     }
 
-    return slideshowService.getSlideshowById(id, sortDirection)
+    return slideshowService.getSlideshowById(id)
             .map(slideshowProjection -> ResponseEntity.ok().body(
                     new SlideshowResponseDTO(slideshowProjection.slideshowId(),
                             objectMapper.convertValue(slideshowProjection.images(),

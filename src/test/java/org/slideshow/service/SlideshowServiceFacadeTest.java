@@ -7,11 +7,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slideshow.model.domain.ImageEntity;
+import org.slideshow.model.domain.SlideshowEntity;
 import org.slideshow.model.projection.SlideshowProjection;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -29,15 +31,9 @@ public class SlideshowServiceFacadeTest {
   @InjectMocks
   private SlideshowServiceFacade slideshowServiceFacade;
 
-  private ImageEntity imageEntity;
-
-  private SlideshowProjection slideshowProjection;
 
   @BeforeEach
   public void setUp() {
-    imageEntity = new ImageEntity();
-    imageEntity.setId(1L);
-    slideshowProjection = mock(SlideshowProjection.class);
   }
 
   @Test
@@ -51,8 +47,15 @@ public class SlideshowServiceFacadeTest {
     ImageEntity savedNewImage = new ImageEntity();
     savedNewImage.setId(2L);
 
+    SlideshowEntity slideshowEntity = new SlideshowEntity();
+    slideshowEntity.setId(3L);
+    slideshowEntity.setImagesIds(List.of(savedNewImage.getId(), existingImage.getId()));
+
+    SlideshowProjection slideshowProjection = mock(SlideshowProjection.class);
+
     when(imageService.createImages(any(Flux.class))).thenReturn(Flux.just(savedNewImage));
-    when(slideshowService.createSlideshow(any(Mono.class))).thenReturn(Mono.just(slideshowProjection));
+    when(slideshowService.createSlideshow(any(Mono.class))).thenReturn(Mono.just(slideshowEntity));
+    when(slideshowService.getSlideshowById(any())).thenReturn(Mono.just(slideshowProjection));
 
     //execute
     StepVerifier.create(slideshowServiceFacade.createSlideshow(Flux.just(newImage, existingImage)))

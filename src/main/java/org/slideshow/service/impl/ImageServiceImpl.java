@@ -8,6 +8,7 @@ import org.slideshow.repository.ImageRepository;
 import org.slideshow.service.ImageService;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -26,7 +27,7 @@ public class ImageServiceImpl implements ImageService {
     return imageDTO.flatMap(imageRepository::save);
   }
 
-  @Transactional(transactionManager = "reactiveTransactionManager")
+  @Transactional(transactionManager = "reactiveTransactionManager", propagation = Propagation.REQUIRES_NEW)
   public Flux<ImageEntity> createImages(Flux<ImageEntity> imagesDTO) {
     return imagesDTO.as(imageRepository::saveAll);
   }
