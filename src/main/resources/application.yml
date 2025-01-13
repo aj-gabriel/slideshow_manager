@@ -8,5 +8,15 @@ spring:
   mvc:
     log-request-details: true
 
+logging:
+  level:
+    root: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.type.descriptor.sql: TRACE
+    io.r2dbc.postgresql.QUERY: DEBUG
+    org.springframework.r2dbc: DEBUG
+
+
 server:
   port: ${PORT:8080}

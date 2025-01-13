@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: 13012025-1-init-proof-of-play-event-table
+      author: oyershov
+      changes:
+        - createTable:
+            tableName: proof_of_play_events
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: image_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: slideshow_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actual_duration
+                  type: smallint
+                  constraints:
+                    nullable: true
+              - column:
+                  name: replaced_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: displayed_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createSequence:
+            sequenceName: proof_of_play_event_seq
+            startValue: 1
+            incrementBy: 1
+
+        - sql:
+            sql: >
+              ALTER TABLE proof_of_play_events
+              ALTER COLUMN id SET DEFAULT nextval('proof_of_play_event_seq');

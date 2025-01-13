@@ -3,16 +3,19 @@ package org.slideshow.web;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slideshow.model.domain.ImageEntity;
+import org.slideshow.model.domain.ProofOfPlayEventEntity;
 import org.slideshow.model.dto.request.ImageDetailsRequestDTO;
+import org.slideshow.model.dto.request.ProofOfPlayEventDTO;
 import org.slideshow.model.dto.request.SlideshowRequestDTO;
 import org.slideshow.model.dto.response.SlideshowResponseDTO;
 import org.slideshow.model.dto.response.ValidationErrorResponseDTO;
+import org.slideshow.service.ProofOfPlayEventService;
 import org.slideshow.service.SlideshowService;
 import org.slideshow.service.SlideshowServiceFacade;
 import org.slideshow.validation.ImagesValidationFacade;
 import org.slideshow.validation.ValidationError;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +29,7 @@ import static org.slideshow.validation.ValidationUtils.filterValidImages;
 import static org.slideshow.web.SharedConstants.SLIDESHOW_API_PATH;
 import static org.springframework.http.HttpStatus.NO_CONTENT;
 
+@Slf4j
 @RequiredArgsConstructor
 @RestController
 @RequestMapping(SLIDESHOW_API_PATH)
@@ -35,6 +39,7 @@ public class SlideshowController {
   private final SlideshowService slideshowService;
   private final SlideshowServiceFacade slideshowFacade;
   private final ImagesValidationFacade validationFacade;
+  private final ProofOfPlayEventService proofOfPlayEventService;
 
   /**
    * One of the possible implementations, depends on contract and business logic.
@@ -114,25 +119,9 @@ public class SlideshowController {
   }
 
 
-  //GET /slideShow/{id}/slideshowOrder: Retrieve images in a slideshow ordered by image addition date.
+  //GET /slideShow/{id}/slideshowOrder: Retrieve images in a slideshow ordered by image addition date IN DESC order.
   @GetMapping("/{id}/slideshowOrder")
-  public Mono<ResponseEntity<SlideshowResponseDTO>> getSlideshow(@PathVariable("id") Long id,
-                                                                 @RequestParam(value = "direction", required = false, defaultValue = "ASC") String direction) {
-
-    Sort.Direction sortDirection;
-    try {
-      sortDirection = Sort.Direction.valueOf(direction.toUpperCase());
-    } catch (IllegalArgumentException e) {
-      return Mono.just(ResponseEntity
-              .status(HttpStatus.BAD_REQUEST)
-              .body(new SlideshowResponseDTO(null,
-                      null,
-                      List.of(new ValidationErrorResponseDTO(
-                              "400", "Invalid value for sorting direction. Use 'ASC' or 'DESC'."
-                      ))
-              ))
-      );
-    }
+  public Mono<ResponseEntity<SlideshowResponseDTO>> getSlideshow(@PathVariable("id") Long id) {
 
     return slideshowService.getSlideshowById(id)
             .map(slideshowProjection -> ResponseEntity.ok().body(
@@ -161,8 +150,30 @@ public class SlideshowController {
 
   //POST /slideShow/{id}/proof-of-play/{imageId}: Record an event when an image is replaced by the next
   @PostMapping("/{id}/proof-of-play/{imageId}")
-  public void logEvent(@PathVariable String id, @PathVariable String imageId) {
+  public Mono<Void> logEvent(@PathVariable Long id,
+                             @PathVariable Long imageId,
+                             @RequestBody Mono<ProofOfPlayEventDTO> eventDTOMono) {
+    return eventDTOMono
+            .flatMap(dto -> Mono.just(buildProofOfPlayEvent(id, imageId, dto)))
+            .flatMap(event -> proofOfPlayEventService.recordProofOfPlay(Mono.just(event)))
+            .onErrorResume(e -> {
+              log.error("An error occurred while logging event", e);
+              return Mono.empty();
+            })
+            .then();//return empty.
+  }
 
+  private ProofOfPlayEventEntity buildProofOfPlayEvent(Long id, Long imageId, ProofOfPlayEventDTO dto) {
+
+    ProofOfPlayEventEntity event = new ProofOfPlayEventEntity();
+    event.setSlideshowId(id);
+    event.setImageId(imageId);
+    event.setUserId(dto.userId());
+    event.setReplacedAt(dto.replacedAt());
+    event.setDisplayedAt(dto.displayedAt());
+    event.setActualDuration(dto.actualDuration());
+
+    return event;
   }
 
   private Flux<ImageEntity> convertToImageEntityList(List<ImageDetailsRequestDTO> images) {

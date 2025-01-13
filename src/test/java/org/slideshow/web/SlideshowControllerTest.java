@@ -7,12 +7,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slideshow.model.domain.ImageEntity;
+import org.slideshow.model.domain.ProofOfPlayEventEntity;
 import org.slideshow.model.dto.request.ImageDetailsRequestDTO;
+import org.slideshow.model.dto.request.ProofOfPlayEventDTO;
 import org.slideshow.model.dto.request.SlideshowRequestDTO;
 import org.slideshow.model.dto.response.ImageResponseDTO;
 import org.slideshow.model.dto.response.SlideshowResponseDTO;
 import org.slideshow.model.dto.response.ValidationErrorResponseDTO;
 import org.slideshow.model.projection.SlideshowProjection;
+import org.slideshow.service.ProofOfPlayEventService;
 import org.slideshow.service.SlideshowService;
 import org.slideshow.service.SlideshowServiceFacade;
 import org.slideshow.validation.ImagesValidationFacade;
@@ -25,6 +28,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +60,9 @@ public class SlideshowControllerTest {
 
   @MockitoBean
   private SlideshowServiceFacade slideshowFacade;
+
+  @MockitoBean
+  private ProofOfPlayEventService proofOfPlayEventService;
 
 
   @BeforeEach
@@ -223,14 +230,12 @@ public class SlideshowControllerTest {
 
     SlideshowProjection slideshowDBProjection = new SlideshowProjection(slideshowId, List.of(imageEntity));
 
-    doReturn(Mono.just(slideshowDBProjection)).when(slideshowFacade).createSlideshow(any());
     doReturn(Mono.just(slideshowDBProjection)).when(slideshowService).getSlideshowById(slideshowId);
 
     //execute
     SlideshowResponseDTO result = webTestClient.get()
             .uri(uriBuilder -> uriBuilder
                     .path(SLIDESHOW_API_PATH + "/{id}/slideshowOrder")
-                    .queryParam("direction", "ASC")
                     .build(slideshowId))
             .exchange()
             .expectStatus().isOk()
@@ -242,8 +247,10 @@ public class SlideshowControllerTest {
     assertNotNull(result);
     assertEquals(slideshowId, result.id());
     assertEquals(1, result.images().size());
-//    assertEquals(objectMapper.convertValue(slideshowDBProjection.images(), new TypeReference<List<ImageResponseDTO>>() {
-//    }), result.images());
+    assertEquals(objectMapper.convertValue(slideshowDBProjection.images(), new TypeReference<List<ImageResponseDTO>>() {
+    }), result.images());
+
+    verify(slideshowService).getSlideshowById(any());
   }
 
   @Test
@@ -259,15 +266,12 @@ public class SlideshowControllerTest {
     imageEntity.setDuration(duration);
     imageEntity.setUrl(url);
 
-//    SlideshowDBProjection slideshowDBProjection = new SlideshowDBProjection(slideshowId, List.of(imageEntity));
-
     doReturn(Mono.error(new RuntimeException())).when(slideshowService).getSlideshowById(slideshowId);
 
     //execute
     SlideshowResponseDTO result = webTestClient.get()
             .uri(uriBuilder -> uriBuilder
                     .path(SLIDESHOW_API_PATH + "/{id}/slideshowOrder")
-                    .queryParam("direction", "ASC")
                     .build(slideshowId))
             .exchange()
             .expectStatus().is5xxServerError()
@@ -284,6 +288,39 @@ public class SlideshowControllerTest {
     assertEquals(INTERNAL_SERVER_ERROR.getCode(), result.errors().get(0).code());
     assertEquals("Something went wrong. Unexpected error: null", result.errors().get(0).message());
 
+    verify(slideshowService).getSlideshowById(any());
+
   }
 
+  @Test
+  void proofOfPlay_ShouldLogEvent() {
+    //prepare
+    OffsetDateTime displayedAt = OffsetDateTime.now();
+    OffsetDateTime replacedAt = displayedAt.plusSeconds(10);
+
+    Long userId = 1235L;
+    short actualDuration = 10;
+    Long imageId = 1L;
+    Long slideshowId = 1L;
+
+    ProofOfPlayEventDTO eventDTO = new ProofOfPlayEventDTO(userId, displayedAt, replacedAt, actualDuration);
+
+    ProofOfPlayEventEntity eventEntity =
+            new ProofOfPlayEventEntity(1L, imageId, slideshowId, userId,
+                    replacedAt, displayedAt, actualDuration);
+
+    when(proofOfPlayEventService.recordProofOfPlay(Mono.just(eventEntity))).thenReturn(Mono.empty());
+
+    //execute
+    webTestClient.post()
+            .uri(uriBuilder -> uriBuilder
+                    .path(SLIDESHOW_API_PATH + "/{id}/proof-of-play/{imageId}")
+                    .build(slideshowId, imageId))
+            .body(Mono.just(eventDTO), ProofOfPlayEventDTO.class)
+            .exchange()
+            .expectStatus().isOk();
+
+    //verify
+    verify(proofOfPlayEventService).recordProofOfPlay(any());
+  }
 }
