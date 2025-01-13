@@ -1,0 +1,20 @@
+//slideshow payload example with non existing id, with invalid image, with valid image
+//POST on http://localhost:8080/api/v1/slideshow
+{
+  "images": [
+    {
+      "id": 1,
+      "url": "https://assets-prd.ignimgs.com/2023/08/04/star-trek-in-order-1691190264355.jpg",
+      "duration": 5
+    },
+    {
+      "duration": 5,
+      "url": "https://assets-prd.ignimgs.com/2023/08/0411111/star-trek-in-order-1691190264355.jpg"
+    },
+    {
+      "duration": 10,
+      "url": "https://assets-prd.ignimgs.com/2022/11/01/startrekdiscoveryseason4homeentertainmenttrailer-ign-blogroll-1667332155012.jpg?fit=bounds&width=1280&height=720"
+    }
+  ]
+}
+

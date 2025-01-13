@@ -1,0 +1,20 @@
+//images payload example with with invalid image and valid duration
+//POST on http://localhost:8080/api/v1/images
+{
+  "duration": 5,
+  "url": "https://assets-prd.ignimgs.com/2023/08/0411111/star-trek-in-order-1691190264355.jpg"
+}
+
+//images payload example with with invalid duration and valid image
+//POST on http://localhost:8080/api/v1/images
+{
+  "duration": 5111,
+  "url": "https://assets-prd.ignimgs.com/2023/08/04/star-trek-in-order-1691190264355.jpg"
+}
+
+//images payload example with with valid image and duration
+//POST on http://localhost:8080/api/v1/images
+{
+"duration": 10,
+"url": "https://assets-prd.ignimgs.com/2022/11/01/startrekdiscoveryseason4homeentertainmenttrailer-ign-blogroll-1667332155012.jpg"
+}
