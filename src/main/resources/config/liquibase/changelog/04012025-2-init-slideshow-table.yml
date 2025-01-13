@@ -12,7 +12,6 @@ databaseChangeLog:
                   constraints:
                     primaryKey: true
                     nullable: false
-                    defaultValueComputed: nextval('slideshow_id_seq')
               - column:
                   name: images_ids
                   type: bigint[]
@@ -29,3 +28,8 @@ databaseChangeLog:
             sequenceName: slideshow_id_seq
             startValue: 1
             incrementBy: 1
+
+        - sql:
+            sql: >
+              ALTER TABLE slideshows 
+              ALTER COLUMN id SET DEFAULT nextval('slideshow_id_seq');

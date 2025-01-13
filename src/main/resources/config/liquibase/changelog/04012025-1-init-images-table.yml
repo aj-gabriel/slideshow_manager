@@ -3,6 +3,11 @@ databaseChangeLog:
       id: 04012025-1-init-images-table
       author: oyershov
       changes:
+        - createSequence:
+            sequenceName: image_id_seq
+            startValue: 1
+            incrementBy: 1
+
         - createTable:
             tableName: images
             columns:
@@ -12,7 +17,6 @@ databaseChangeLog:
                   constraints:
                     primaryKey: true
                     nullable: false
-                    defaultValueComputed: nextval('image_id_seq')
               - column:
                   name: url
                   type: text
@@ -30,10 +34,10 @@ databaseChangeLog:
                   constraints:
                     nullable: false
 
-        - createSequence:
-            sequenceName: image_id_seq
-            startValue: 1
-            incrementBy: 1
+        - sql:
+            sql: >
+              ALTER TABLE images 
+              ALTER COLUMN id SET DEFAULT nextval('image_id_seq');
 
         - sql:
             sql: >
