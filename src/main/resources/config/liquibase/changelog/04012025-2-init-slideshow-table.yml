@@ -12,6 +12,7 @@ databaseChangeLog:
                   constraints:
                     primaryKey: true
                     nullable: false
+                    defaultValueComputed: nextval('slideshow_id_seq')
               - column:
                   name: images_ids
                   type: bigint[]

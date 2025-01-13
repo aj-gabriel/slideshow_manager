@@ -12,6 +12,7 @@ databaseChangeLog:
                   constraints:
                     primaryKey: true
                     nullable: false
+                    defaultValueComputed: nextval('image_id_seq')
               - column:
                   name: url
                   type: text
