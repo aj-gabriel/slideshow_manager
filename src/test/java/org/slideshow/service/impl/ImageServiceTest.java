@@ -11,7 +11,6 @@ import org.slideshow.model.domain.ImageEntity;
 import org.slideshow.model.projection.ImageProjection;
 import org.slideshow.repository.ImageRepository;
 import org.slideshow.service.ImageService;
-import org.springframework.data.domain.Sort;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -105,16 +104,16 @@ public class ImageServiceTest {
   void findByKeywordAndDuration_ShouldReturnMatchingImages() {
     //prepare
     ImageProjection projection = mock(ImageProjection.class);
-    when(imageRepository.findByKeywordAndDuration("test", 10, "ASC"))
+    when(imageRepository.findByKeywordAndDuration("test", 10))
             .thenReturn(Flux.just(projection));
 
     //execute
-    StepVerifier.create(imageService.findByKeywordAndDuration("test", 10, Sort.Direction.ASC))
+    StepVerifier.create(imageService.findByKeywordAndDuration("test", 10))
             .expectNext(projection)
             .verifyComplete();
 
     //verify
-    verify(imageRepository).findByKeywordAndDuration("test", 10, "ASC");
+    verify(imageRepository).findByKeywordAndDuration("test", 10);
   }
 
   @Test

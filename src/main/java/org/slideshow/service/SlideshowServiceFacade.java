@@ -19,7 +19,7 @@ public class SlideshowServiceFacade {
 
   @Transactional(transactionManager = "reactiveTransactionManager")
   public Mono<SlideshowProjection> createSlideshow(Flux<ImageEntity> imagesDTO) {
-    //combine them and create new Slideshow
+    //create new images, combine existing and new image ids, create new Slideshow
     return imagesDTO
             .filter(dto -> dto.getId() == null)
             .as(imageService::createImages)

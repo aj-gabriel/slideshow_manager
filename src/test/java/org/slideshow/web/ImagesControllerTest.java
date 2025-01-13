@@ -18,7 +18,6 @@ import org.slideshow.validation.ValidationErrorCodes;
 import org.slideshow.validation.validators.ImageValidationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -231,7 +230,7 @@ public class ImagesControllerTest {
     imageEntity.setDuration(duration);
     imageEntity.setUrl(url);
 
-    when(imageService.findByKeywordAndDuration(anyString(), anyInt(), any()))
+    when(imageService.findByKeywordAndDuration(anyString(), anyInt()))
             .thenReturn(Flux.just(new ImageProjection(imageId, url, duration)));
 
     // execute
@@ -240,7 +239,6 @@ public class ImagesControllerTest {
                     .path(IMAGES_API_PATH + "/search")
                     .queryParam("keyword", keyword)
                     .queryParam("duration", String.valueOf(duration))
-                    .queryParam("direction", "ASC")
                     .build()
             )
             .exchange()
@@ -250,7 +248,7 @@ public class ImagesControllerTest {
             .contains(new ImageResponseDTO(imageId, url, duration));
 
     // verify
-    verify(imageService).findByKeywordAndDuration(keyword, 10, Sort.Direction.ASC);
+    verify(imageService).findByKeywordAndDuration(keyword, 10);
   }
 
   @Test
@@ -266,7 +264,7 @@ public class ImagesControllerTest {
     imageEntity.setDuration(duration);
     imageEntity.setUrl(url);
 
-    when(imageService.findByKeywordAndDuration(anyString(), anyInt(), any()))
+    when(imageService.findByKeywordAndDuration(anyString(), anyInt()))
             .thenReturn(Flux.error(new RuntimeException()));
 
     // execute
@@ -275,7 +273,6 @@ public class ImagesControllerTest {
                     .path(IMAGES_API_PATH + "/search")
                     .queryParam("keyword", keyword)
                     .queryParam("duration", String.valueOf(duration))
-                    .queryParam("direction", "ASC")
                     .build()
             )
             .exchange()
@@ -284,7 +281,7 @@ public class ImagesControllerTest {
             .hasSize(0);
 
     // verify
-    verify(imageService).findByKeywordAndDuration(keyword, 10, Sort.Direction.ASC);
+    verify(imageService).findByKeywordAndDuration(keyword, 10);
   }
 
 }

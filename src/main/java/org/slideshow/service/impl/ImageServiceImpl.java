@@ -6,7 +6,6 @@ import org.slideshow.model.domain.ImageEntity;
 import org.slideshow.model.projection.ImageProjection;
 import org.slideshow.repository.ImageRepository;
 import org.slideshow.service.ImageService;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,8 +40,8 @@ public class ImageServiceImpl implements ImageService {
   }
 
   @Override
-  public Flux<ImageProjection> findByKeywordAndDuration(String keyword, Integer duration, Sort.Direction orderDirection) {
-    return imageRepository.findByKeywordAndDuration(keyword, duration, orderDirection.name());
+  public Flux<ImageProjection> findByKeywordAndDuration(String keyword, Integer duration) {
+    return imageRepository.findByKeywordAndDuration(keyword, duration);
   }
 
   @Transactional(transactionManager = "reactiveTransactionManager")

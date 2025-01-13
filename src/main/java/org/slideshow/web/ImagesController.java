@@ -14,7 +14,6 @@ import org.slideshow.service.SlideshowServiceFacade;
 import org.slideshow.validation.ImageValidationException;
 import org.slideshow.validation.ImagesValidationFacade;
 import org.slideshow.validation.validators.ImageValidationService;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -67,18 +66,9 @@ public class ImagesController {
   @GetMapping("/search")
   public Mono<ResponseEntity<List<ImageResponseDTO>>> searchImages(
           @RequestParam(value = "keyword", required = false) String keyword,
-          @RequestParam(value = "duration", required = false) Integer duration,
-          @RequestParam(value = "direction", required = false, defaultValue = "ASC") String direction) {
+          @RequestParam(value = "duration", required = false) Integer duration) {
 
-    Sort.Direction sortDirection;
-
-    try {
-      sortDirection = Sort.Direction.valueOf(direction.toUpperCase());
-    } catch (IllegalArgumentException e) {
-      return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
-    }
-
-    return imageService.findByKeywordAndDuration(keyword, duration, sortDirection)
+    return imageService.findByKeywordAndDuration(keyword, duration)
             .map(imageProjection -> new ImageResponseDTO(
                     imageProjection.id(),
                     imageProjection.url(),
