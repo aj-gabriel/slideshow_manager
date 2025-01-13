@@ -28,7 +28,11 @@ public interface SlideshowRepository extends ReactiveCrudRepository<SlideshowEnt
   Flux<SlideshowDBProjection> findSlideshowWithImagesById(Long slideshowId);
 
   @Modifying
-  @Query("UPDATE slideshows SET images = array_remove(images, :imageId) WHERE :imageId = ANY(s.images_ids::bigint[])")
+  @Query("""
+              UPDATE slideshows
+              SET images_ids = array_remove(images_ids, :imageId)
+              WHERE :imageId = ANY(images_ids)
+          """)
   Mono<Integer> removeImageIdFromSlideshows(@Param("imageId") Long imageId);
 
 }

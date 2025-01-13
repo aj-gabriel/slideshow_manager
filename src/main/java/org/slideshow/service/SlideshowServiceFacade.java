@@ -40,6 +40,7 @@ public class SlideshowServiceFacade {
 
   }
 
+  @Transactional(transactionManager = "reactiveTransactionManager")
   public Mono<Void> deleteImageAndUpdateSlideshow(Mono<Long> imageId) {
     return imageId
             .flatMap(imageService::deleteImageById)
